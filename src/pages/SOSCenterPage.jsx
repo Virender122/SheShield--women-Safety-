@@ -29,7 +29,7 @@ const SOSCenterPage = () => {
   const [incomingCallActive, setIncomingCallActive] = useState(false);
   const [callAnswered, setCallAnswered] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [gpsCoords, setGpsCoords] = useState({ lat: '28.6139', lon: '77.2090' });
+  const [gpsCoords, setGpsCoords] = useState({ lat: '', lon: '' });
   const [simulatedSubtitles, setSimulatedSubtitles] = useState('');
   const [callerName, setCallerName] = useState('Mom');
   const [callDelay, setCallDelay] = useState('0');
@@ -132,10 +132,8 @@ const SOSCenterPage = () => {
     }
   }, [sosActive, countdown]);
 
-  const startRingtone = () => {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
+  const startRingtone = (ctx) => {
+    if (!ctx) return;
     audioCtxRef.current = ctx;
     const masterGain = ctx.createGain();
     masterGain.connect(ctx.destination);
@@ -198,12 +196,22 @@ const SOSCenterPage = () => {
   };
 
   const triggerFakeCall = async (delay = 0) => {
+    // Synchronously unlock AudioContext during the user click gesture
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let ctx = null;
+    if (AudioContext) {
+      ctx = new AudioContext();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+    }
+
     setLoading(true);
     try {
       await api.post('/sos/fake-call');
       if (delay === 0) {
         setIncomingCallActive(true);
-        startRingtone();
+        startRingtone(ctx);
         return;
       }
       setFakeCallTimer(delay);
@@ -212,7 +220,7 @@ const SOSCenterPage = () => {
           if (prev <= 1) {
             clearInterval(fakeCallInterval.current);
             setIncomingCallActive(true);
-            startRingtone();
+            startRingtone(ctx);
             return null;
           }
           return prev - 1;
@@ -440,7 +448,7 @@ const SOSCenterPage = () => {
                 <p className="text-xs text-slate-500 mt-2 max-w-md mx-auto leading-relaxed">
                   {sosActive
                     ? 'Your highly encrypted location coordinates are actively streaming to central responder networks and your private guardians.'
-                    : 'Activating this protocol triggers direct coordinate broadcasts to regional dispatchers and sends customized SMS warnings to your pre-selected safety guardians.'}
+                    : 'Activating this protocol triggers direct coordinate broadcasts to regional dispatchers and sends customized Email alerts to your pre-selected safety guardians.'}
                 </p>
               </div>
 
@@ -493,13 +501,13 @@ const SOSCenterPage = () => {
                       <div>
                         <span className="text-slate-400 font-extrabold text-[10px] tracking-wider uppercase block">Latitude Grid</span>
                         <span className="text-slate-700 font-mono font-bold flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3.5 h-3.5 text-emerald-500" /> {gpsCoords.lat}° N
+                          <MapPin className="w-3.5 h-3.5 text-emerald-500" /> {gpsCoords.lat ? `${gpsCoords.lat}° N` : 'N/A'}
                         </span>
                       </div>
                       <div>
                         <span className="text-slate-400 font-extrabold text-[10px] tracking-wider uppercase block">Longitude Grid</span>
                         <span className="text-slate-700 font-mono font-bold flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3.5 h-3.5 text-emerald-500" /> {gpsCoords.lon}° E
+                          <MapPin className="w-3.5 h-3.5 text-emerald-500" /> {gpsCoords.lon ? `${gpsCoords.lon}° E` : 'N/A'}
                         </span>
                       </div>
                     </div>
@@ -529,11 +537,11 @@ const SOSCenterPage = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="p-3 bg-slate-50/60 rounded-2xl border border-slate-100">
                   <span className="text-[10px] text-slate-400 uppercase font-extrabold block">Current Latitude</span>
-                  <span className="text-xs font-mono font-bold text-slate-700 block mt-1">{gpsCoords.lat || '28.6139'}° N</span>
+                  <span className="text-xs font-mono font-bold text-slate-700 block mt-1">{gpsCoords.lat ? `${gpsCoords.lat}° N` : 'Locating...'}</span>
                 </div>
                 <div className="p-3 bg-slate-50/60 rounded-2xl border border-slate-100">
                   <span className="text-[10px] text-slate-400 uppercase font-extrabold block">Current Longitude</span>
-                  <span className="text-xs font-mono font-bold text-slate-700 block mt-1">{gpsCoords.lon || '77.2090'}° E</span>
+                  <span className="text-xs font-mono font-bold text-slate-700 block mt-1">{gpsCoords.lon ? `${gpsCoords.lon}° E` : 'Locating...'}</span>
                 </div>
                 <div className="p-3 bg-slate-50/60 rounded-2xl border border-slate-100">
                   <span className="text-[10px] text-slate-400 uppercase font-extrabold block">GPS Precision Limit</span>

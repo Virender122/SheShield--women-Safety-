@@ -95,13 +95,20 @@ export const routeService = {
    * Fetch nearby amenities using Overpass API (OpenStreetMap)
    * This makes the safety data REAL and dynamic.
    */
-  async getNearbyAmenities(lat, lon, type, radius = 5000) {
+  async getNearbyAmenities(lat, lon, type, radius = 5000, retries = 1) {
     const query = `[out:json];node["amenity"="${type}"](around:${radius},${lat},${lon});out;`;
     try {
       const response = await fetch(`${OVERPASS_URL}?data=${encodeURIComponent(query)}`);
+      if (!response.ok) throw new Error('Overpass API returned ' + response.status);
       const data = await response.json();
       return data.elements || [];
     } catch (error) {
+      if (retries > 0) {
+        console.warn(`Retrying Overpass API for ${type}... (${retries} left)`);
+        // Wait 1 second before retrying
+        await new Promise(res => setTimeout(res, 1000));
+        return this.getNearbyAmenities(lat, lon, type, radius, retries - 1);
+      }
       console.error(`Failed to fetch ${type}:`, error);
       return [];
     }
