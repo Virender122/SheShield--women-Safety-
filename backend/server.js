@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const http = require('http');
 const { Server } = require('socket.io');
-const nodemailer = require('nodemailer');
+const twilio = require('twilio');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -93,75 +93,35 @@ mongoose.connect(mongoURI)
   .catch(err => console.log('❌ MongoDB connection error:', err));
 
 // ==========================================
-// NODEMAILER SETUP (Replaces Twilio)
+// TWILIO SETUP (SMS Notifications)
 // ==========================================
-const createMailTransporter = () => {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT) || 587,
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    }
-  });
+const getTwilioClient = () => {
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+    return twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  }
+  return null;
 };
 
-const sendSOSEmail = async (toEmail, toName, userName, lat, lon) => {
-  const transporter = createMailTransporter();
-  const mapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
-  
-  const mailOptions = {
-    from: `"${process.env.SMTP_FROM_NAME || 'SheShield SOS'}" <${process.env.SMTP_USER}>`,
-    to: toEmail,
-    subject: `🚨 EMERGENCY SOS ALERT from ${userName}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(135deg, #FF4777, #FF8DA1); padding: 20px; border-radius: 12px; text-align: center; color: white;">
-          <h1 style="margin: 0; font-size: 24px;">🚨 EMERGENCY SOS ALERT</h1>
-          <p style="margin: 8px 0 0; font-size: 14px; opacity: 0.9;">SheShield Women Safety System</p>
-        </div>
-        
-        <div style="background: #FFF5F6; padding: 24px; border-radius: 12px; margin-top: 16px; border: 1px solid #FFE0E6;">
-          <p style="font-size: 16px; color: #333; margin: 0 0 12px;">
-            <strong>${userName}</strong> has triggered an <strong style="color: #FF4777;">Emergency SOS Alert</strong> and needs immediate help.
-          </p>
-          
-          <p style="font-size: 14px; color: #555; margin: 0 0 8px;">
-            <strong>Dear ${toName},</strong>
-          </p>
-          <p style="font-size: 14px; color: #555; margin: 0 0 16px;">
-            Please check on them immediately. Their live GPS coordinates are below.
-          </p>
-          
-          <div style="background: white; padding: 16px; border-radius: 8px; border: 1px solid #E5E7EB;">
-            <p style="margin: 0 0 8px; font-size: 13px; color: #666;">
-              📍 <strong>Latitude:</strong> ${lat}
-            </p>
-            <p style="margin: 0 0 12px; font-size: 13px; color: #666;">
-              📍 <strong>Longitude:</strong> ${lon}
-            </p>
-            <a href="${mapsLink}" style="display: inline-block; background: #FF4777; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
-              📍 Open Location in Google Maps
-            </a>
-          </div>
-        </div>
-        
-        <div style="text-align: center; margin-top: 16px; padding: 12px; background: #F8FAFC; border-radius: 8px;">
-          <p style="font-size: 11px; color: #999; margin: 0;">
-            This alert was sent via SheShield Women Safety App at ${new Date().toLocaleString()}
-          </p>
-        </div>
-      </div>
-    `
-  };
+const sendSOSSMS = async (toPhone, toName, userName, lat, lon) => {
+  const client = getTwilioClient();
+  if (!client) {
+    console.log('⚠️  Twilio not configured - skipping SMS for', toName);
+    return { success: false, error: 'Twilio not configured' };
+  }
 
+  const mapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
+  const messageBody = `🚨 EMERGENCY SOS ALERT 🚨\n${userName} has triggered an SOS and needs immediate help.\n\nDear ${toName},\nPlease check on them. Live Location:\n${mapsLink}`;
+  
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`📧 SOS Email sent to ${toEmail}: ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
+    const message = await client.messages.create({
+      body: messageBody,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: toPhone
+    });
+    console.log(`📱 SOS SMS sent to ${toPhone}: ${message.sid}`);
+    return { success: true, messageId: message.sid };
   } catch (error) {
-    console.error(`❌ Failed to send SOS email to ${toEmail}:`, error.message);
+    console.error(`❌ Failed to send SOS SMS to ${toPhone}:`, error.message);
     return { success: false, error: error.message };
   }
 };
@@ -262,15 +222,14 @@ app.post('/api/sos/activate', authMiddleware, async (req, res) => {
     // Get all guardians for this user
     const guardians = await Guardian.find({ userId: req.userId });
     
-    const smtpConfigured = process.env.SMTP_USER && process.env.SMTP_PASS && 
-                           process.env.SMTP_USER !== 'your_gmail@gmail.com';
+    const twilioConfigured = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN;
 
-    if (smtpConfigured && guardians.length > 0) {
-      // Fire-and-forget: Send SOS emails in background (parallel) without blocking the response
+    if (twilioConfigured && guardians.length > 0) {
+      // Fire-and-forget: Send SOS SMS in background (parallel) without blocking the response
       guardians.forEach(guardian => {
-        if (guardian.email) {
-          sendSOSEmail(guardian.email, guardian.name, user.name, lat, lon)
-            .catch(error => console.error(`❌ Background SOS email to ${guardian.email} failed:`, error.message));
+        if (guardian.phone) {
+          sendSOSSMS(guardian.phone, guardian.name, user.name, lat, lon)
+            .catch(error => console.error(`❌ Background SOS SMS to ${guardian.phone} failed:`, error.message));
         }
       });
       
@@ -278,14 +237,14 @@ app.post('/api/sos/activate', authMiddleware, async (req, res) => {
         success: true,
         status: 'ACTIVATED',
         timestamp: new Date().toISOString(),
-        message: `Emergency SOS activated! Dispatching email alerts to ${guardians.length} guardian(s) in background.`
+        message: `Emergency SOS activated! Dispatching SMS alerts to ${guardians.length} guardian(s) in background.`
       });
     }
 
-    // If SMTP not configured or no guardians with email
+    // If Twilio not configured or no guardians with phone
     let message = 'SOS signal activated.';
-    if (!smtpConfigured) {
-      message += ' Email alerts not configured — please set up SMTP in backend .env file.';
+    if (!twilioConfigured) {
+      message += ' SMS alerts not configured — please set up Twilio in backend .env file.';
     }
     if (guardians.length === 0) {
       message += ' No guardians configured — please add emergency contacts in Settings.';
@@ -331,42 +290,19 @@ app.post('/api/incidents/report', authMiddleware, upload.single('media'), async 
     // Broadcast new incident to all connected clients
     io.emit('new_incident', newIncident);
 
-    // Send email to authority if configured
-    const authorityEmail = process.env.AUTHORITY_EMAIL || process.env.SMTP_USER;
-    if (authorityEmail && authorityEmail !== 'your_gmail@gmail.com') {
-      const transporter = createMailTransporter();
+    // Send SMS to authority if configured
+    const authorityPhone = process.env.AUTHORITY_PHONE_NUMBER;
+    const client = getTwilioClient();
+    if (client && authorityPhone) {
       const serverUrl = process.env.FRONTEND_URL || 'http://localhost:5005';
       const fullMediaUrl = mediaUrl ? `${serverUrl}${mediaUrl}` : 'No media attached';
+      const messageBody = `🚨 INCIDENT REPORT: ${newIncident.title} 🚨\nType: ${newIncident.type}\nSeverity: ${newIncident.severity}\nLocation: ${newIncident.location}\nDesc: ${newIncident.description}\nMedia: ${fullMediaUrl}`;
       
-      const mailOptions = {
-        from: `"${process.env.SMTP_FROM_NAME || 'SheShield Reports'}" <${process.env.SMTP_USER}>`,
-        to: authorityEmail,
-        subject: `🚨 INCIDENT REPORT: ${newIncident.title}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #10B981, #34D399); padding: 20px; border-radius: 12px; text-align: center; color: white;">
-              <h1 style="margin: 0; font-size: 24px;">📝 NEW INCIDENT REPORT</h1>
-              <p style="margin: 8px 0 0; font-size: 14px; opacity: 0.9;">SheShield Women Safety System</p>
-            </div>
-            
-            <div style="background: #F8FAFC; padding: 24px; border-radius: 12px; margin-top: 16px; border: 1px solid #E2E8F0;">
-              <p style="margin: 0 0 8px; font-size: 14px; color: #333;"><strong>Type:</strong> ${newIncident.type}</p>
-              <p style="margin: 0 0 8px; font-size: 14px; color: #333;"><strong>Severity:</strong> ${newIncident.severity}</p>
-              <p style="margin: 0 0 8px; font-size: 14px; color: #333;"><strong>Location:</strong> ${newIncident.location}</p>
-              <p style="margin: 0 0 8px; font-size: 14px; color: #333;"><strong>Description:</strong> ${newIncident.description}</p>
-              <p style="margin: 0 0 16px; font-size: 14px; color: #333;"><strong>Media Attachment:</strong> ${mediaUrl ? `<a href="${fullMediaUrl}" style="color: #10B981; font-weight: bold;">Link</a> (also attached to this email)` : 'None'}</p>
-            </div>
-          </div>
-        `,
-        attachments: req.file ? [
-          {
-            filename: req.file.originalname,
-            path: req.file.path
-          }
-        ] : []
-      };
-      
-      transporter.sendMail(mailOptions).catch(err => console.error('Failed to send authority email:', err));
+      client.messages.create({
+        body: messageBody,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: authorityPhone
+      }).catch(err => console.error('Failed to send authority SMS:', err.message));
     }
 
     res.json({ success: true, report: newIncident });
@@ -566,11 +502,10 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`🛡️  SheShield Backend running on port ${PORT}`);
   console.log(`📡 Socket.IO ready for real-time connections`);
   
-  const smtpConfigured = process.env.SMTP_USER && process.env.SMTP_PASS && 
-                         process.env.SMTP_USER !== 'your_gmail@gmail.com';
-  if (smtpConfigured) {
-    console.log(`📧 SMTP configured - SOS emails will be sent via ${process.env.SMTP_HOST}`);
+  const twilioConfigured = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN;
+  if (twilioConfigured) {
+    console.log(`📱 Twilio configured - SOS SMS will be sent from ${process.env.TWILIO_PHONE_NUMBER}`);
   } else {
-    console.log(`⚠️  SMTP not configured - SOS emails disabled. Update .env to enable.`);
+    console.log(`⚠️  Twilio not configured - SOS SMS disabled. Update .env to enable.`);
   }
 });

@@ -36,17 +36,17 @@ const destIcon = typeof window !== 'undefined' ? L.divIcon({
 }) : null;
 
 const policeIcon = typeof window !== 'undefined' ? L.divIcon({
-  html: `<div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg shadow-blue-500/50"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>`,
+  html: `<div class="w-8 h-8 bg-blue-700 rounded-lg flex items-center justify-center border-2 border-white shadow-xl shadow-blue-600/50"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>`,
   className: '',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12]
+  iconSize: [32, 32],
+  iconAnchor: [16, 16]
 }) : null;
 
 const hospitalIcon = typeof window !== 'undefined' ? L.divIcon({
-  html: `<div class="w-6 h-6 bg-rose-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg shadow-rose-500/50"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>`,
+  html: `<div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center border-2 border-rose-600 shadow-xl shadow-rose-500/50"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>`,
   className: '',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12]
+  iconSize: [32, 32],
+  iconAnchor: [16, 16]
 }) : null;
 
 function MapController({ bounds }) {

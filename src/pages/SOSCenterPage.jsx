@@ -448,7 +448,7 @@ const SOSCenterPage = () => {
                 <p className="text-xs text-slate-500 mt-2 max-w-md mx-auto leading-relaxed">
                   {sosActive
                     ? 'Your highly encrypted location coordinates are actively streaming to central responder networks and your private guardians.'
-                    : 'Activating this protocol triggers direct coordinate broadcasts to regional dispatchers and sends customized Email alerts to your pre-selected safety guardians.'}
+                    : 'Activating this protocol triggers direct coordinate broadcasts to regional dispatchers and sends customized SMS alerts to your pre-selected safety guardians.'}
                 </p>
               </div>
 
