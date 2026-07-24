@@ -123,7 +123,10 @@ async def lifespan(app: FastAPI):
     logger.info("🛡️  SheShield Python Backend starting...")
 
     mongo_client = AsyncIOMotorClient(MONGO_URI)
-    db = mongo_client.get_default_database()
+    try:
+        db = mongo_client.get_default_database()
+    except Exception:
+        db = mongo_client["women-safety"]
     logger.info("✅ MongoDB connected")
 
     # Create indexes
