@@ -30,7 +30,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_token(user_id: str) -> str:
     """Create a JWT token with 7-day expiry. Matches the Node.js jwt.sign({ id }, secret, { expiresIn: '7d' })."""
     payload = {
-        "id": user_id,
+        "id": str(user_id),
         "exp": datetime.now(timezone.utc) + timedelta(days=JWT_EXPIRY_DAYS),
         "iat": datetime.now(timezone.utc),
     }
