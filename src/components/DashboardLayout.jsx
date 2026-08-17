@@ -59,7 +59,7 @@ const DashboardLayout = ({ children, title = 'Home' }) => {
   };
 
   return (
-    <div className="min-h-screen flex relative overflow-hidden text-slate-800">
+    <div className="h-screen flex relative overflow-hidden text-slate-800">
       {/* Immersive brand background graphic with custom high-end glassmorphism overlay */}
       <div className="absolute inset-0 bg-[url('/background.jpg')] bg-cover bg-center bg-no-repeat -z-20" />
       <div className="absolute inset-0 bg-gradient-to-tr from-white/75 via-[#FFF5F6]/70 to-[#FFF0F2]/60 backdrop-blur-[1.5px] -z-10" />

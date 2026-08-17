@@ -109,19 +109,37 @@ const sendSOSSMS = async (toPhone, toName, userName, lat, lon) => {
     return { success: false, error: 'Twilio not configured' };
   }
 
+  // Ensure E.164 formatting (prepend +91 if 10 digits) for Twilio
+  let formattedPhone = toPhone.toString().trim();
+  if (formattedPhone.length === 10 && /^\d+$/.test(formattedPhone)) {
+    formattedPhone = `+91${formattedPhone}`;
+  } else if (!formattedPhone.startsWith('+')) {
+    formattedPhone = `+${formattedPhone}`;
+  }
+
   const mapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
   const messageBody = `🚨 EMERGENCY SOS ALERT 🚨\n${userName} has triggered an SOS and needs immediate help.\n\nDear ${toName},\nPlease check on them. Live Location:\n${mapsLink}`;
   
   try {
+    // 1. Send SMS
     const message = await client.messages.create({
       body: messageBody,
       from: process.env.TWILIO_PHONE_NUMBER,
-      to: toPhone
+      to: formattedPhone
     });
-    console.log(`📱 SOS SMS sent to ${toPhone}: ${message.sid}`);
-    return { success: true, messageId: message.sid };
+    console.log(`📱 SOS SMS sent to ${formattedPhone}: ${message.sid}`);
+
+    // 2. Make Voice Call
+    const call = await client.calls.create({
+      twiml: `<Response><Say voice='alice'>Emergency SOS Alert. ${userName} has triggered an S O S and needs immediate help. Dear ${toName}, please check on them immediately. Their live location is available on the app.</Say></Response>`,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: formattedPhone
+    });
+    console.log(`📞 SOS Call sent to ${formattedPhone}: ${call.sid}`);
+
+    return { success: true, messageId: message.sid, callId: call.sid };
   } catch (error) {
-    console.error(`❌ Failed to send SOS SMS to ${toPhone}:`, error.message);
+    console.error(`❌ Failed to send SOS Alert to ${toPhone}:`, error.message);
     return { success: false, error: error.message };
   }
 };

@@ -48,7 +48,7 @@ const SOSCenterPage = () => {
       const { active, lat, lon, message } = e.detail;
       if (active) {
         setSosActive(true);
-        setCountdown(5);
+        setCountdown(0);
         if (lat && lon) {
           setGpsCoords({ lat, lon });
         }
@@ -75,7 +75,7 @@ const SOSCenterPage = () => {
 
   const handleActivateSOS = () => {
     setSosActive(true);
-    setCountdown(5);
+    setCountdown(0);
     setSosMessage('Activating emergency beacon & locating device...');
 
     // Perform geolocation lock and backend alert asynchronously in background
