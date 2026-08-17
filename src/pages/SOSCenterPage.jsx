@@ -428,6 +428,25 @@ const SOSCenterPage = () => {
           </div>
         </div>
 
+        {/* Trial Restriction Notice */}
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row items-start gap-4 shadow-[0_4px_20px_rgba(251,191,36,0.15)] mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="p-3 bg-amber-100 rounded-xl text-amber-600 shrink-0 shadow-sm border border-amber-200">
+            <ShieldAlert className="w-6 h-6 animate-pulse" />
+          </div>
+          <div>
+            <h3 className="text-sm font-extrabold text-amber-900 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+              System Notification <span className="flex h-2 w-2 relative"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span></span>
+            </h3>
+            <p className="text-xs text-amber-800 font-medium leading-relaxed max-w-4xl">
+              We are currently operating on a free trial tier. At this time, SOS SMS emergency alerts are restricted to <strong>pre-registered Guardian phone numbers only</strong>. 
+              Upon upgrading, this feature will seamlessly dispatch alerts to any emergency contact globally. 
+              <span className="block mt-2 font-bold text-amber-900 bg-amber-100/50 inline-block px-3 py-1.5 rounded-lg border border-amber-200/50">
+                ✨ If you would like a live demonstration of the full unlimited capabilities, please contact me!
+              </span>
+            </p>
+          </div>
+        </div>
+
         {/* Central Dashboard Layout */}
         <div className="grid lg:grid-cols-12 gap-6 items-start">
           

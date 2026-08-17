@@ -24,7 +24,7 @@ const request = async (endpoint, options = {}) => {
   try {
     response = await fetch(`${API_URL}${endpoint}`, config);
   } catch (err) {
-    alert(`Debug Alert:\nFailed to fetch from:\n${API_URL}${endpoint}\n\nError: ${err.message}`);
+    console.error(`Fetch failed from: ${API_URL}${endpoint}`, err);
     throw err;
   }
 
