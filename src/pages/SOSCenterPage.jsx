@@ -46,6 +46,7 @@ const SOSCenterPage = () => {
   useEffect(() => {
     const handleStatusChanged = (e) => {
       const { active, lat, lon, message } = e.detail;
+      console.log('Received sos-status-changed event:', e.detail);
       if (active) {
         setSosActive(true);
         setCountdown(0);
@@ -73,42 +74,45 @@ const SOSCenterPage = () => {
     };
   }, []);
 
-  const handleActivateSOS = () => {
+  const handleActivateSOS =async () => {
     setSosActive(true);
     setCountdown(0);
     setSosMessage('Activating emergency beacon & locating device...');
 
-    // Perform geolocation lock and backend alert asynchronously in background
-    (async () => {
-      let lat = gpsCoords.lat;
-      let lon = gpsCoords.lon;
-
-      if (navigator.geolocation) {
-        try {
-          const pos = await new Promise((resolve, reject) => {
+    try{   
+       // Perform geolocation lock and backend alert asynchronously in background
+        if (!navigator.geolocation) {
+      throw new Error('Geolocation is not supported by this browser');
+    }
+          const position = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, {
               enableHighAccuracy: true,
-              timeout: 2000,
-              maximumAge: 10000
+              timeout: 10000,
+              maximumAge: 0
             });
           });
-          lat = pos.coords.latitude.toFixed(4);
-          lon = pos.coords.longitude.toFixed(4);
-          setGpsCoords({ lat, lon });
+         let lat = position.coords.latitude;
+        let  lon = position.coords.longitude;
+    setGpsCoords({
+      lat: lat.toFixed(6),
+      lon: lon.toFixed(6)
+    });
+        console.log('SOS Location:', {
+      latitude: lat,
+      longitude: lon
+    });
+   const result = await api.post('/sos/activate', {
+      lat,
+      lon
+    });
+
+    setSosMessage(
+      result.message || 'Emergency SOS activated!'
+    );
         } catch (gpsErr) {
           console.warn('GPS timed out or failed, using cached location:', gpsErr);
         }
       }
-
-      try {
-        const result = await api.post('/sos/activate', { lat, lon });
-        setSosMessage(result.message || 'Emergency SOS activated!');
-      } catch (err) {
-        console.error(err);
-        setSosMessage('SOS signal dispatched locally. Offline mode active.');
-      }
-    })();
-  };
 
   const handleDeactivateSOS = async () => {
     setLoading(true);
