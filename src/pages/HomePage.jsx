@@ -197,7 +197,7 @@ const HomePage = () => {
   };
 
   return (
-    <div className="relative min-h-screen p-4 md:p-6 flex flex-col justify-between overflow-x-hidden bg-gradient-to-tr from-[#FFF8F9] via-[#FFF5F6] to-[#EEF2FF]">
+    <div className="relative min-h-screen p-4 md:p-6 flex flex-col justify-between overflow-hidden bg-gradient-to-tr from-[#FFF8F9] via-[#FFF5F6] to-[#EEF2FF]">
       
       {/* Background vector glow effects */}
       <div className="absolute top-[-100px] left-[-50px] w-[350px] h-[350px] bg-gradient-to-br from-[#FFD5DC]/35 to-[#FFF0F2]/10 rounded-full blur-[100px] pointer-events-none -z-10" />
@@ -208,7 +208,7 @@ const HomePage = () => {
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-30 backdrop-blur-md bg-white/75 border border-white/60 shadow-[0_8px_32px_rgba(255,182,193,0.08)] rounded-[24px] p-2.5 xs:p-3 sm:p-4 flex flex-row items-center justify-between gap-2 sm:gap-4 max-w-[96%] sm:max-w-[94%] xl:max-w-7xl 2xl:max-w-[1400px] w-full mx-auto mb-4 sm:mb-6">
+        className="relative z-30 backdrop-blur-md bg-white/75 border border-white/60 shadow-[0_8px_32px_rgba(255,182,193,0.08)] rounded-[24px] p-2.5 xs:p-3 sm:p-4 flex flex-row items-center justify-between gap-2 sm:gap-4 max-w-[96%] sm:max-w-[94%] xl:max-w-7xl 2xl:max-w-[1500px] w-full mx-auto mb-4 sm:mb-6">
         <div className="flex items-center gap-2 sm:gap-3">
           <img
             src="/logo.jpg"
@@ -367,11 +367,7 @@ const HomePage = () => {
         </div>
       </motion.header>
 
-      <main className="relative flex-1 flex flex-col items-center justify-center w-full max-w-[96%] sm:max-w-[94%] xl:max-w-7xl 2xl:max-w-[1400px] mx-auto my-auto z-10 gap-3.5 sm:gap-0">
-        
-        {/* ========================================================================= */}
-        {/* DESKTOP WIDESCREEN LAYOUT (Aspect Ratio and Layout exact mockup replica) */}
-        {/* ========================================================================= */}
+      <main className="relative flex-1 flex flex-col items-center justify-center w-full max-w-[96%] sm:max-w-[94%] xl:max-w-7xl 2xl:max-w-[1500px] mx-auto my-auto z-10 gap-3.5 sm:gap-0">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -691,7 +687,7 @@ const HomePage = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-30 backdrop-blur-md bg-white/75 border border-white/60 shadow-[0_8px_32px_rgba(255,182,193,0.08)] rounded-[24px] p-3.5 flex items-center justify-between max-w-[94%] xl:max-w-7xl 2xl:max-w-[1400px] w-full mx-auto mt-6 text-xs text-slate-500 font-bold">
+        className="relative z-30 backdrop-blur-md bg-white/75 border border-white/60 shadow-[0_8px_32px_rgba(255,182,193,0.08)] rounded-[24px] p-3.5 flex items-center justify-between max-w-[94%] xl:max-w-7xl 2xl:max-w-[1500px] w-full mx-auto mt-6 text-xs text-slate-500 font-bold">
         <div className="flex items-center gap-2">
           <Compass className="w-4 h-4 text-pink-600 animate-spin" style={{ animationDuration: '8s' }} />
           <span>Interactive Safety Grid • Select console parameters to activate coordinates.</span>

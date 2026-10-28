@@ -1,16 +1,17 @@
+import { API_BASE_URL } from '../config';
+
 // API Service for Women Safety App — Real Backend Only (No Simulation)
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005/api';
+const API_URL = API_BASE_URL;
 
 // HTTP request wrapper with auth token injection and error handling
 const request = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token');
 
   const headers = {
-    ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   };
 
-  // Only set Content-Type to JSON if it's not FormData
   if (!(options.body instanceof FormData)) {
     headers['Content-Type'] = headers['Content-Type'] || 'application/json';
   }
@@ -28,7 +29,6 @@ const request = async (endpoint, options = {}) => {
     throw err;
   }
 
-  // Handle 401 Unauthorized — clear token and redirect to login
   if (response.status === 401) {
     localStorage.removeItem('token');
     if (typeof window !== 'undefined') {
@@ -45,12 +45,11 @@ const request = async (endpoint, options = {}) => {
   return await response.json();
 };
 
-// Expose API client methods
 export const api = {
   get: (endpoint, options = {}) => request(endpoint, { ...options, method: 'GET' }),
-  post: (endpoint, body, options = {}) => request(endpoint, { 
-    ...options, 
-    method: 'POST', 
-    body: body instanceof FormData ? body : JSON.stringify(body) 
+  post: (endpoint, body, options = {}) => request(endpoint, {
+    ...options,
+    method: 'POST',
+    body: body instanceof FormData ? body : JSON.stringify(body),
   }),
 };

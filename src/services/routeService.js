@@ -1,6 +1,10 @@
 const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 const ORS_URL = 'https://api.openrouteservice.org/v2/directions/driving-car';
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+// const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
+// const ORS_URL =
+//   "https://api.heigit.org/openrouteservice/v2/directions/foot-walking/geojson";
+// const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 
 export const routeService = {
   /**
@@ -78,7 +82,7 @@ export const routeService = {
       },
       body: JSON.stringify(body)
     });
-    
+    console.log(response, "response")
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.error?.message || 'Failed to fetch safe route');
@@ -95,24 +99,102 @@ export const routeService = {
    * Fetch nearby amenities using Overpass API (OpenStreetMap)
    * This makes the safety data REAL and dynamic.
    */
-  async getNearbyAmenities(lat, lon, type, radius = 5000, retries = 1) {
-    const query = `[out:json];node["amenity"="${type}"](around:${radius},${lat},${lon});out;`;
+  // async getNearbyAmenities(lat, lon, type, radius = 5000, retries = 3) {
+  //   const query = `[out:json];node["amenity"="${type}"](around:${radius},${lat},${lon});out;`;
+  //   try {
+  //     const response = await fetch(`${OVERPASS_URL}?data=${encodeURIComponent(query)}`);
+  //     if (!response.ok) throw new Error('Overpass API returned ' + response.status);
+  //     const data = await response.json();
+  //     return data.elements || [];
+  //   } catch (error) {
+  //     if (retries > 0) {
+  //       console.warn(`Retrying Overpass API for ${type}... (${retries} left)`);
+  //       // Wait 1 second before retrying
+  //       await new Promise(res => setTimeout(res, 1000));
+  //       return this.getNearbyAmenities(lat, lon, type, radius, retries - 1);
+  //     }
+  //     console.error(`Failed to fetch ${type}:`, error);
+  //     return [];
+  //   }
+  // },
+
+
+  
+async getNearbyAmenities(lat, lon, type, radius = 1000, retries = 3) {
+  const query =
+    `[out:json][timeout:25];` +
+    `nwr["amenity"="${type}"]` +
+    `(around:${radius},${lat},${lon});` +
+    `out center;`;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const response = await fetch(`${OVERPASS_URL}?data=${encodeURIComponent(query)}`);
-      if (!response.ok) throw new Error('Overpass API returned ' + response.status);
-      const data = await response.json();
-      return data.elements || [];
-    } catch (error) {
-      if (retries > 0) {
-        console.warn(`Retrying Overpass API for ${type}... (${retries} left)`);
-        // Wait 1 second before retrying
-        await new Promise(res => setTimeout(res, 1000));
-        return this.getNearbyAmenities(lat, lon, type, radius, retries - 1);
+      const response = await fetch(OVERPASS_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({ data: query }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+
+        if (
+          ![429, 502, 503, 504].includes(response.status) ||
+          attempt === retries
+        ) {
+          throw new Error(
+            `Overpass API ${response.status}: ${message}`
+          );
+        }
+
+        const retryAfter = Number(response.headers.get("Retry-After"));
+        const delay = retryAfter > 0
+          ? retryAfter * 1000
+          : 3000 * Math.pow(2, attempt);
+
+        console.warn(
+          `Overpass unavailable (${response.status}). Retrying in ${delay}ms`
+        );
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
       }
-      console.error(`Failed to fetch ${type}:`, error);
-      return [];
+
+      const data = await response.json();
+
+      if (data.remark) {
+        console.warn("Overpass query warning:", data.remark);
+      }
+
+      return (data.elements || []).map(element => ({
+        ...element,
+        lat: element.lat ?? element.center?.lat,
+        lon: element.lon ?? element.center?.lon,
+      }));
+
+    } catch (error) {
+      if (attempt === retries) {
+        console.error(
+          `Failed to fetch ${type}:`,
+          error.message
+        );
+        return [];
+      }
+
+      if (error.message.startsWith("Overpass API ")) {
+        throw error;
+      }
+
+      await new Promise(resolve =>
+        setTimeout(resolve, 3000 * Math.pow(2, attempt))
+      );
     }
-  },
+  }
+
+  return [];
+},
 
   /**
    * Calculate a dynamic safety score based on route conditions and nearby safety infrastructure

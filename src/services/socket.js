@@ -1,14 +1,11 @@
-// Socket.IO Client Service for Real-Time Community Chat
 import { io } from 'socket.io-client';
-
-const apiStr = import.meta.env.VITE_API_URL || '';
-const SOCKET_URL = apiStr.includes('/api') ? apiStr.replace('/api', '') : 'http://localhost:5005';
+import { SOCKET_BASE_URL } from '../config';
 
 let socket = null;
 
 export const getSocket = () => {
   if (!socket) {
-    socket = io(SOCKET_URL || undefined, {
+    socket = io(SOCKET_BASE_URL, {
       autoConnect: false,
       reconnection: true,
       reconnectionAttempts: 10,
